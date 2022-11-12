@@ -1,0 +1,296 @@
+---
+title: "CIS 635 Final Project"
+author: "Ian Curtis"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(corrplot)
+library(mosaic)
+```
+
+```{r}
+mlb <- read_csv("mlb-hit-dist/mlb_hit_dist.csv") %>% 
+  rename(hit_distance = hit_distance_sc) %>% 
+  mutate(month = month(game_date))
+```
+
+# Unvariate EDA
+
+## Hit Distance
+
+```{r}
+mlb %>% 
+  #filter(hit_distance > 15) %>% 
+  #filter(events != 'sac_bunt') %>% 
+  #filter(description != "foul") %>% 
+  ggplot(aes(hit_distance)) +
+  geom_histogram(binwidth = 15)
+```
+
+```{r}
+mlb %>% 
+  filter(description != "foul")
+```
+
+I realized here that I need to exclude bunts, foul balls, and any hits with a hit distance less than 15 feet to meet the regression assumption of normality (there is a strong floor effect here). Moreover, I am analyzing hit distance in an attempt to help prepare fielders for potential hits. As of right now, foul balls are not being considered as they were not in the field of play and may not accurately represent what in-play balls would do. In the future, I could add in foul balls that have a hit distance of greater than a cutoff (to avoid all of the foul tips and short rollers).
+
+## Game Date
+
+```{r}
+mlb %>% ggplot(aes(x = game_date)) +
+  geom_histogram(binwidth = 30)
+```
+
+Nothing to note here except that it's interesting that August has a lower number of valid results. Perhaps I could use month in my final model.
+
+## Events
+
+```{r}
+mlb %>% distinct(events)
+```
+
+```{r}
+mlb %>% ggplot(aes(x = events)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+There are a few rare events and events that don't result in a significant hit distance that do not need to be considered in this project. These include catcher interference and sacrifice bunts. Other events may need to be consolidated such as sacrifice fly and sacrifice fly double play and double play and grounded into double play. However, I am not going to focus too hard on these events as most of them are NA.
+
+## Pitch Type
+
+```{r}
+mlb %>%
+  ggplot(aes(x = pitch_type)) +
+  geom_bar()
+```
+
+I see here that I will definitely need to merge some of the lesser used pitch types into an 'other' category. These include CS, EP, FA, FS, KC, and KN.
+
+## Release Speed
+
+```{r}
+mlb %>% 
+  ggplot(aes(release_speed)) +
+  geom_histogram(binwidth = 3)
+
+mlb %>% 
+  filter(is.na(release_speed))
+```
+
+This plot is approximately normal and thus meets one of the regression assumptions. I will need to remove the 14 rows that do not have a release speed.
+
+## Stand
+
+```{r}
+mlb %>% 
+  ggplot(aes(stand)) +
+  geom_bar()
+```
+
+This result brings no surprises; more batters are right-handed than left-handed.
+
+## Balls
+
+```{r}
+mlb %>% 
+  ggplot(aes(balls)) +
+  geom_bar()
+```
+
+Everything looks as expected here. It makes sense that the least amount come from counts with three balls as not as many players do not make it to three balls without a hit or an out.
+
+## Strikes
+```{r}
+mlb %>% 
+  ggplot(aes(strikes)) +
+  geom_bar()
+```
+
+```{r}
+mlb %>% filter(strikes == 3) %>% select(description, events, strikes, game_date)
+```
+
+It looks like more hits occur with two strikes in the count which does seem logical as players are more anxious to hit the ball and may swing more. It is odd that there is an observation with 3 strikes in the count. This is likely either an error or a rare, funky event. Either way, I will remove it especially as there is only one of these anomalies.
+
+## Outs When Up
+```{r}
+mlb %>% 
+  ggplot(aes(outs_when_up)) +
+  geom_bar()
+```
+
+Nothing particularly surprising here.
+
+## Inning
+
+```{r}
+mlb %>% 
+  ggplot(aes(inning)) +
+  geom_bar()
+```
+
+I will likely have to make this variable a factor and combine innings 10 and up into a category called "extra innings". There just aren't enough observations to merit keeping them separate. That being said, I do believe that extra innings might influence hit distance and that data from extra innings is important to keep. Perhaps I can take the square root or the log.
+
+```{r}
+mlb %>% 
+  ggplot(aes(sqrt(inning))) +
+  geom_bar()
+```
+
+This didn't seem to make much of a difference other than shifting the values leftward.
+
+```{r}
+mlb %>% filter(inning > 9) %>% select(inning, game_date) %>% group_by(inning) %>% summarise(n = n())
+```
+
+Compared to the quantity of pitches in standard 9 innings, there are not many pitches in extra innings. I think I will end up having to drop any values from extra innings. In the future, I could run a separate analysis on just extra innings to see if there are any differences between pitches in a standard game.
+
+# Inning (Top or Bottom)
+```{r}
+mlb %>% 
+  ggplot(aes(inning_topbot)) +
+  geom_bar()
+```
+
+I'm not sure if this variable will be useful on its own in predicting hit distance. However, I think this variable is key to understanding the influence of home field advantage. Perhaps batting in the bottom of the inning makes a difference.
+
+## Launch Speed
+```{r}
+mlb %>% 
+  ggplot(aes(launch_speed)) +
+  geom_histogram(binwidth = 10)
+```
+
+I will have to remove the 1903 rows with missing data. The graph here may show a violation of the normality assumption for regression. I don't think I will do any transformations on this data at first.
+
+## Launch Angle
+```{r}
+mlb %>% 
+  ggplot(aes(launch_angle)) +
+  geom_histogram(binwidth = 10)
+```
+
+I am pleased by the approximately normal pattern of this graph. Nothing to note other than NA removal will be necessary.
+
+## Release Spin Rate
+```{r}
+mlb %>% 
+  ggplot(aes(release_spin_rate)) +
+  geom_histogram(binwidth = 100)
+```
+
+```{r}
+mlb %>% filter(is.na(release_spin_rate)) %>% select(game_date, release_spin_rate, events)
+```
+
+This graph also nicely follows a normal curve but will also require some NA removal.
+
+## At Bat Number
+```{r}
+mlb %>% 
+  ggplot(aes(at_bat_number)) +
+  geom_histogram(binwidth = 5)
+```
+
+I don't think I will be using this variable in the final model. It is true that hit distance may be affected by at bat number in terms of experience throughout the year but I think that can be reflected in other variables. 
+
+# Pitch Number
+```{r}
+mlb %>% 
+  ggplot(aes(pitch_number)) +
+  geom_histogram(binwidth = 1)
+```
+
+This variable could definitely be interesting to include in the model. Does a longer at bat lead to a longer hit ball? I will need to do a transformation here to make the graph look more normal-like, such as a log or a square root.
+
+# Home Team
+
+```{r}
+mlb %>% 
+  ggplot(aes(home_team)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+I would love to include this variable as a player's opponent may have an affect on how they hit the ball. My main concern with this, particularly with regression, is that there are 30 teams which means 29 dummy variables. This would contribute heavily to the curse of dimensionality.
+
+
+
+# Bivariate EDA
+
+```{r}
+mlb %>% 
+  filter(hit_distance > 0) %>% 
+  ggplot(aes(x = release_speed, y = launch_speed)) +
+  geom_point()
+```
+
+```{r}
+numeric <- mlb %>% select(hit_distance, release_speed, launch_speed, launch_angle, release_spin_rate, at_bat_number, pitch_number, strikes, balls, outs_when_up, inning, pitch_number) %>% na.omit()
+
+corr <- round(cor(numeric), 2)
+
+corrplot(corr)
+```
+
+Even though it isn't quite right to include nominal variable in a correlation matrix, it is still interesting to analyze them as if they were truly numeric. It looks like `launch_angle` and `launch_speed` are both moderately correlated with `hit_distance`, which does make sense here. Not many other variables are correlated with `hit_distance.` It is good to see that `balls` and `strikes` are correlated with `pitch_number` and that `inning` is coordinated with `at_bat_number`. This helps verify that the data was collected correctly.
+
+```{r}
+mlb %>% 
+  ggplot(aes(x = hit_distance, y = launch_speed)) +
+  geom_point()
+```
+
+I can see where the positive correlation is coming from. I'm not sure if the linearity assumption is met but I will continue on anyways.
+
+```{r}
+mlb %>% 
+  filter(hit_distance > 15) %>% 
+  ggplot(aes(x = hit_distance, y = launch_angle)) +
+  geom_point()
+```
+
+I'm not confident this meets the linearity assumption either. I am going to continue on with the analysis even though I know my results and p-values may not be entirely accurate.
+
+## Fun Graphs
+
+```{r}
+mlb %>% 
+  filter(hit_distance > 15) %>% 
+  ggplot(aes(x = game_date, y = hit_distance, color = stand)) +
+  geom_point()
+```
+
+```{r}
+mlb %>% 
+  filter(hit_distance > 15) %>% 
+  ggplot(aes(x = hit_distance, fill = p_throws)) +
+  geom_boxplot()
+```
+
+```{r}
+mlb %>% 
+  filter(strikes < 3 & hit_distance > 15) %>% 
+  ggplot(aes(x = hit_distance, fill = as.factor(strikes))) +
+  geom_boxplot() +
+  scale_color_brewer(palette = "Set2")
+```
+
+```{r}
+mlb %>%
+  filter(hit_distance > 15) %>% 
+  ggplot(aes(x = hit_distance, fill = as.factor(month))) +
+  geom_boxplot() +
+  scale_color_brewer(palette = "Set2")
+```
+
+```{r}
+mlb %>% 
+  ggplot(aes(x = game_date, y = hit_distance, color = as.factor(balls))) +
+  geom_point()
+```
+
