@@ -363,8 +363,8 @@ pre code {
 </div>
 
 
-<p>For reference, all of my code can be found <a href>on my GitHub
-repo</a>. My scraped data is also there under the file name
+<p>For reference, all of my code can be found <a href="https://github.com/ian-curtis/mlb-hit-dist">on my GitHub repo</a>.
+My scraped data is also there under the file name
 <code>mlb_hit_dist.csv</code>.</p>
 <div id="progress-so-far" class="section level1">
 <h1>Progress So Far</h1>
@@ -394,7 +394,7 @@ a train and test dataset (85% vs. 15%). I then decided on how to split
 up the field into categories. Each number corresponds to a Zone in the
 field (i.e., 1. = Zone 1, etc.):</p>
 <ol style="list-style-type: decimal">
-<li>0 - 70</li>
+<li>0 - 70 (feet)</li>
 <li>71 - 140</li>
 <li>141 - 210</li>
 <li>211 - 280</li>
@@ -440,16 +440,18 @@ the batted ball is hit are pretty good predictors of how far the ball
 will go. Ideally, I’d like to find a way to do better than just these
 two variables, especially if I can include variables that occur
 <em>before</em> the ball it hit (otherwise there isn’t enough time to
-make a decision).</p>
+make a decision). My biggest concern however is just getting a decision
+tree and neural network to work before I customize any variables.</p>
 </div>
 <div id="next-steps" class="section level1">
 <h1>Next Steps</h1>
 <p>My biggest next steps are to try and implement a decision tree and a
 neural network for my data. The data for these algorithms will have to
 be slightly different than the regression algorithm since I do not need
-to use dummy variables or interaction variables. I will then need to
-check the model accuracy (with a confusion matrix) and create some model
-cards.</p>
+to use dummy variables or interaction variables so I will need to update
+my variable selection (without changing the <code>train</code> and
+<code>test</code> datasets. I will then need to check the model accuracy
+(with a confusion matrix) and create some model cards.</p>
 <p>Another thing I need to do is clean up my code, which is currently
 very messy and, for the most part, lacking comments. I really need to
 rename my variable so it’s clear which datasets are used for each
