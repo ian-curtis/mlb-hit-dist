@@ -1,0 +1,19 @@
+﻿algorithm,model,type,accuracy
+Regression,Full Model,train,0.2165899
+Regression,Reduced 1,train,0.215962
+Regression,Reduced 2,train,0.2154472
+Regression,Reduced 3,train,0.2161755
+Regression,Reduced 4,train,0.2162508
+Regression,Reduced 5,train,0.2146561
+Decision Tree,Full Model,train,0.7392358
+Decision Tree,Full Model,test,0.7321759
+Decision Tree,Reduced 1,train,0.222931
+Decision Tree,Reduced 1,test,0.2089085
+Decision Tree,Reduced 2,train,0.7391479
+Decision Tree,Reduced 2,test,0.7321759
+Neural Network,Full Model,train,0.6161554
+Neural Network,Full Model,test,0.6131351
+Neural Network,Reduced 1,train,0.2180213
+Neural Network,Reduced 1,test,0.210047
+Neural Network,Reduced 2,train,0.8123532
+Neural Network,Reduced 2,test,0.8113704
