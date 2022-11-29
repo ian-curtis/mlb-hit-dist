@@ -1,0 +1,136 @@
+---
+title: "Decision Tree Analysis"
+author: "Ian Curtis"
+date: "2022-11-21"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+library(rpart)
+library(rpart.plot)
+```
+
+```{r}
+train <- read_csv('data/train_data.csv')
+test <- read_csv('data/test_data.csv')
+```
+
+```{r}
+train_tree <- train %>% 
+  select(-c(starts_with('d_'), starts_with('i_'), sqrt_pitch_num, hit_distance))
+test_tree <- test %>% 
+  select(-c(starts_with('d_'), starts_with('i_'), sqrt_pitch_num, hit_distance))
+
+train_tree$pitch_type <- as.factor(train_tree$pitch_type)
+train_tree$balls <- as.factor(train_tree$balls)
+train_tree$strikes <- as.factor(train_tree$strikes)
+train_tree$outs_when_up <- as.factor(train_tree$outs_when_up)
+train_tree$inning <- as.factor(train_tree$inning)
+train_tree$pitch_number <- train_tree$pitch_number
+train_tree$month <- as.factor(train_tree$month)
+train_tree$dist_categ <- as.factor(train_tree$dist_categ)
+
+test_tree$pitch_type <- as.factor(test_tree$pitch_type)
+test_tree$balls <- as.factor(test_tree$balls)
+test_tree$strikes <- as.factor(test_tree$strikes)
+test_tree$outs_when_up <- as.factor(test_tree$outs_when_up)
+test_tree$inning <- as.factor(test_tree$inning)
+test_tree$pitch_number <- test_tree$pitch_number
+test_tree$month <- as.factor(test_tree$month)
+test_tree$dist_categ <- as.factor(test_tree$dist_categ)
+```
+
+```{r}
+preds <- function(pred_data, algo, model) {
+  
+  predictions <- as.factor(predict(algo, pred_data %>% select(-dist_categ), type = 'class'))
+  
+  cm <- confusionMatrix(predictions, pred_data$dist_categ)
+  
+  return(list(model = model, preds = predictions, accuracy = cm$overall[['Accuracy']], mtx = cm$table))
+}
+```
+
+```{r}
+dtree_full <- rpart(
+  formula = dist_categ ~ .,
+  data = train_tree,
+  method = 'class',
+  control=rpart.control(cp=0.00001, maxdepth = 6),
+  parms = list(split="information")
+)
+
+pdf("./dt_full.pdf")
+rpart.plot(dtree_full)
+dev.off()
+
+dt_res_full <- preds(train_tree, dtree_full, 'dt_pred_full')
+dt_res_full$accuracy
+```
+
+```{r}
+dtree_reduced1 <- rpart(
+  formula = dist_categ ~ .,
+  data = train_tree %>% select(-c(launch_angle, launch_speed)),
+  method = 'class',
+  control=rpart.control(cp=0.00001, maxdepth = 6),
+  parms = list(split="information")
+)
+
+pdf("./dt_red1.pdf")
+rpart.plot(dtree_reduced1)
+dev.off()
+
+dt_res_red1 <- preds(train_tree, dtree_reduced1, 'dt_pred_reduced1')
+dt_res_red1$accuracy
+```
+
+```{r}
+dtree_reduced2 <- rpart(
+  formula = dist_categ ~ .,
+  data = train_tree %>% select(launch_angle, launch_speed, dist_categ),
+  method = 'class',
+  control=rpart.control(cp=0.00001, maxdepth = 6),
+  parms = list(split="information")
+)
+
+pdf("./figures/dt_red2.pdf")
+rpart.plot(dtree_reduced2)
+dev.off()
+
+dt_res_red2 <- preds(train_tree, dtree_reduced2, 'dt_pred_reduced2')
+dt_res_red2$accuracy
+```
+
+Problems:
+
+* With `launch_speed` and `launch_angle`, tree is driven by them. Have to really increase depth or decrease cp
+* With just one of them, still driven mainly by that variable. Usually half of the zones are driven by just the single variable and the others involve a couple other variables.
+* By dropping both of them, some zones are not predicted.
+
+# Testing
+
+```{r}
+dt_res_full_test <- preds(test_tree, dtree_full, 'dt_pred_full_test')
+dt_res_full_test$accuracy
+```
+
+```{r}
+dt_res_red1_test <- preds(test_tree, dtree_reduced1, 'dt_pred_reduced1_test')
+dt_res_red1_test$accuracy
+```
+
+```{r}
+dt_res_red2_tree <- preds(test_tree, dtree_reduced2, 'dt_pred_reduced2_tree')
+dt_res_red2_tree$accuracy
+```
+
+
+
+
+
+
+
+

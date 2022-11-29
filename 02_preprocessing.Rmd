@@ -1,0 +1,96 @@
+---
+title: "Preprocessing Data"
+author: "Ian Curtis"
+date: "2022-11-21"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+
+```{r import_data}
+mlb_raw <- read_csv("data/mlb_raw.csv") %>% 
+  rename(hit_distance = hit_distance_sc) %>% 
+  filter(
+    (hit_distance > 15) & (!is.na(release_speed)) & (strikes < 3) & (!is.na(release_spin_rate)) & (description != 'foul') & (!events %in% c('sac_bunt', 'catcher_interf')) & (inning < 10))
+```
+
+# Data Tidying and Preprocessing
+
+```{r transform_add_data}
+mlb_transform <- mlb_raw %>% 
+      mutate(
+        pitch_type = ifelse(mlb_raw$pitch_type %in% c('CS', 'FS', 'KC', 'KN', 'EP', 'FA'), 'other', mlb_raw$pitch_type),
+        sqrt_pitch_num = sqrt(pitch_number),
+        month = month(game_date),
+        dist_categ = as.factor(case_when(
+          (hit_distance <= 70) ~ 'Zone 1',
+          (hit_distance > 70 & hit_distance <= 140) ~ 'Zone 2',
+          (hit_distance > 140 & hit_distance <= 210) ~ 'Zone 3',
+          (hit_distance > 210 & hit_distance <= 280) ~ 'Zone 4',
+          (hit_distance > 280 & hit_distance <= 350) ~ 'Zone 5',
+          (hit_distance > 350) ~ 'Zone 6',
+        )
+        )) %>% 
+  select(!c(game_date, description, events, pitch_name, at_bat_number, home_team))
+```
+
+```{r}
+mlb_transform %>% 
+  ggplot(aes(x = dist_categ)) +
+  geom_bar(fill = 'darkmagenta', color = 'black') +
+  labs(title = 'Distribution of Distance Categories',
+       subtitle = '2022 MLB Regular Season',
+       x = 'distance zone (groups of 70 feet)') +
+  theme(panel.background = element_rect(fill = 'grey80'))
+
+ggsave('dist_categ.pdf', path = './figures')
+```
+
+
+```{r select_dummy_interact}
+mlb_dummy <- mlb_transform %>% 
+  mutate(
+    d_pitch_SI = ifelse(pitch_type == "SI", 1, 0),
+    d_pitch_FC = ifelse(pitch_type == "FC", 1, 0),
+    d_pitch_FF = ifelse(pitch_type == "FF", 1, 0),
+    d_pitch_CU = ifelse(pitch_type == "CU", 1, 0),
+    d_pitch_SL = ifelse(pitch_type == "SL", 1, 0),
+    d_pitch_CH = ifelse(pitch_type == "CH", 1, 0),
+    d_stand_l = ifelse(stand == 'L', 1, 0),
+    d_pthrow_l = ifelse(p_throws == "L", 1, 0),
+    d_inning_top = ifelse(inning_topbot == 'Top', 1, 0),
+    i_release_balls = release_speed*balls,
+    i_release_outs = release_speed*outs_when_up,
+    i_release_inn = release_speed*inning,
+    i_release_launchs = release_speed*launch_speed,
+    i_release_launcha = release_speed*launch_angle,
+    i_release_spin = release_speed*release_spin_rate,
+    i_release_pitchn = release_speed*sqrt_pitch_num,
+    i_release_SI = release_speed*d_pitch_SI,
+    i_release_FC = release_speed*d_pitch_FC,
+    i_release_FF = release_speed*d_pitch_FF,
+    i_release_CU = release_speed*d_pitch_CU,
+    i_release_SL = release_speed*d_pitch_SL,
+    i_release_CH = release_speed*d_pitch_CH,
+    i_ball_strike = balls*strikes,
+    i_launches = launch_speed*launch_angle,
+    i_spin_month = release_spin_rate*month,
+    i_launchs_spin = launch_speed*release_spin_rate,
+    i_launcha_spin = launch_angle*release_spin_rate
+  ) %>% 
+  select(!c(stand, p_throws, inning_topbot)) %>% 
+  na.omit()
+```
+
+```{r split_data}
+train <- mlb_dummy %>% sample_frac(.85)
+test  <- anti_join(mlb_dummy, train)
+
+write_csv(train, 'train_data.csv')
+write_csv(test, 'test_data.csv')
+```
+

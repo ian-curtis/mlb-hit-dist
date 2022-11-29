@@ -3,9 +3,10 @@ title: 'Progress Report: CIS 635'
 author: 'Ian Curtis'
 date: '11/11/2022'
 output: pdf_document
+urlcolor: blue
 ---
 
-For reference, all of my code can be found [on my GitHub repo](). My scraped data is also there under the file name `mlb_hit_dist.csv`.
+For reference, all of my code can be found [on my GitHub repo](https://github.com/ian-curtis/mlb-hit-dist). My scraped data is also there under the file name `mlb_hit_dist.csv`.
 
 # Progress So Far
 
@@ -15,7 +16,7 @@ I then began work on some exploratory data analysis (`eda.Rmd`). I wanted to mak
 
 After some EDA, I began the project (`project.Rmd`). This included importing the data, applying some filters from my EDA, adding in dummy variables and some interaction variables, creating a categorical variable for hit distance zone, and splitting the data into a train and test dataset (85% vs. 15%). I then decided on how to split up the field into categories. Each number corresponds to a Zone in the field (i.e., 1. = Zone 1, etc.):
 
-1. 0 - 70
+1. 0 - 70 (feet)
 2. 71 - 140
 3. 141 - 210
 4. 211 - 280
@@ -32,11 +33,11 @@ A few challenges presented themselves in this process. The most important is tha
 
 I'm not exactly sure, but this may be due to the fact that hit distances cannot be less than 0? Either way, I cannot trust my regression results. It's possible that they aren't too terrible but since an assumption has been violated, I can't assume that the regression output is accurate. The good news is that the algorithm is only about 20% accurate according to a confusion matrix but it's disappointing to know that it isn't valid.
 
-Another challenge I recently had (and still need to look into) is that it appears two variables are driving the analysis: `launch_speed` and `launch_angle`. This makes total sense: the speed of the ball off the bat and the angle at which the batted ball is hit are pretty good predictors of how far the ball will go. Ideally, I'd like to find a way to do better than just these two variables, especially if I can include variables that occur *before* the ball it hit (otherwise there isn't enough time to make a decision).
+Another challenge I recently had (and still need to look into) is that it appears two variables are driving the analysis: `launch_speed` and `launch_angle`. This makes total sense: the speed of the ball off the bat and the angle at which the batted ball is hit are pretty good predictors of how far the ball will go. Ideally, I'd like to find a way to do better than just these two variables, especially if I can include variables that occur *before* the ball it hit (otherwise there isn't enough time to make a decision). My biggest concern however is just getting a decision tree and neural network to work before I customize any variables.
 
 # Next Steps
 
-My biggest next steps are to try and implement a decision tree and a neural network for my data. The data for these algorithms will have to be slightly different than the regression algorithm since I do not need to use dummy variables or interaction variables. I will then need to check the model accuracy (with a confusion matrix) and create some model cards.
+My biggest next steps are to try and implement a decision tree and a neural network for my data. The data for these algorithms will have to be slightly different than the regression algorithm since I do not need to use dummy variables or interaction variables so I will need to update my variable selection (without changing the `train` and `test` datasets. I will then need to check the model accuracy (with a confusion matrix) and create some model cards.
 
 Another thing I need to do is clean up my code, which is currently very messy and, for the most part, lacking comments. I really need to rename my variable so it's clear which datasets are used for each algorithm and which are for for basic preprocessing. I'm considering moving the filtering and dummy variable creation to another file to help separate that from my actual project file. Please feel free to give your opinion on this, but I don't think this code is necessary for the final report; I can simply write a bit about what I did and include any relevant graphics (in the case of EDA) in this step without bogging up the report with additional code.
 
