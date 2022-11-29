@@ -1,0 +1,108 @@
+---
+title: "Neural Network Analysis"
+author: "Ian Curtis"
+date: "2022-11-21"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+library(nnet)
+library(NeuralNetTools)
+```
+
+```{r}
+train <- read_csv('data/train_data.csv')
+test <- read_csv('data/test_data.csv')
+```
+
+```{r}
+train_nn <- train %>% 
+  select(-c(starts_with("i_"), sqrt_pitch_num, hit_distance, pitch_type))
+test_nn <- test %>% 
+  select(-c(starts_with("i_"), sqrt_pitch_num, hit_distance, pitch_type))
+
+train_nn$dist_categ <- as.factor(train_nn$dist_categ)
+train_nn$month <- as.factor(train_nn$month)
+
+test_nn$dist_categ <- as.factor(test_nn$dist_categ)
+test_nn$month <- as.factor(test_nn$month)
+
+train_nn[,-c(10:20)] <- scale(train_nn[,-c(10:20)])
+test_nn[,-c(10:20)] <- scale(test_nn[,-c(10:20)])
+```
+
+```{r}
+preds <- function(pred_data, algo, model) {
+  
+  predictions <- as.factor(predict(algo, pred_data %>% select(-dist_categ), type = 'class'))
+  
+  cm <- confusionMatrix(predictions, pred_data$dist_categ)
+  
+  return(list(model = model, preds = predictions, accuracy = cm$overall[['Accuracy']], mtx = cm$table))
+}
+```
+
+```{r}
+nn_full <- nnet(
+  formula = dist_categ ~ .,
+  data = train_nn,
+  size = 5,
+  decay=1.0e-7
+)
+
+#plotnet(network)
+
+nn_res_full <- preds(train_nn, nn_full, 'nn_pred_full')
+nn_res_full$accuracy
+```
+
+```{r}
+nn_reduced1 <- nnet(
+  formula = dist_categ ~ .,
+  data = train_nn %>% select(-c(launch_angle, launch_speed)),
+  size = 5,
+  decay=1.0e-7
+)
+
+#plotnet(nn_reduced1)
+
+nn_res_red1 <- preds(train_nn, nn_reduced1, 'nn_pred_reduced1')
+nn_res_red1$accuracy
+```
+
+```{r}
+nn_reduced2 <- nnet(
+  formula = dist_categ ~ .,
+  data = train_nn %>% select(launch_angle, launch_speed, dist_categ),
+  size = 5,
+  decay=1.0e-7
+)
+
+#plotnet(nn_reduced1)
+
+nn_res_red2 <- preds(train_nn, nn_reduced2, 'nn_pred_reduced2')
+nn_res_red2$accuracy
+```
+
+# Testing
+
+```{r}
+nn_res_full_test <- preds(test_nn, nn_full, 'nn_pred_full_test')
+nn_res_full_test$accuracy
+```
+
+```{r}
+nn_res_red1_test <- preds(test_nn, nn_reduced1, 'nn_pred_reduced1_test')
+nn_res_red1_test$accuracy
+```
+
+```{r}
+nn_res_red2_test <- preds(test_nn, nn_reduced2, 'nn_pred_reduced2_test')
+nn_res_red2_test$accuracy
+```
+
+
+
+
