@@ -179,14 +179,6 @@ eval_reg <- bind_rows(evaluate_reg(full_model), evaluate_reg(reduced1), evaluate
 colnames(eval_reg) <- c('model', 'sse', 'mse', 'r2', 'f_overall', 'p_overall')
 ```
 
-```{r}
-eval_reg %>% 
-  kbl() %>% 
-  kable_styling() %>% 
-  save_kable('./figures/reg_summ.pdf')
-
-```
-
 ```{r resid-plot-red5}
 resid_plot <- as_tibble(c(reduced5['errors'], reduced5['predicted'])) %>% 
   ggplot(aes(x = predicted, y = errors)) +
