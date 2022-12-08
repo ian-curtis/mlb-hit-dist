@@ -62,7 +62,7 @@ dtree_full <- rpart(
   parms = list(split="information")
 )
 
-pdf("./dt_full.pdf")
+pdf("./figures/dt_full.pdf")
 rpart.plot(dtree_full)
 dev.off()
 
@@ -79,7 +79,7 @@ dtree_reduced1 <- rpart(
   parms = list(split="information")
 )
 
-pdf("./dt_red1.pdf")
+pdf("./figures/dt_red1.pdf")
 rpart.plot(dtree_reduced1)
 dev.off()
 

@@ -52,7 +52,9 @@ nn_full <- nnet(
   decay=1.0e-7
 )
 
-#plotnet(network)
+pdf("./figures/nn_full.pdf")
+plotnet(nn_full)
+dev.off()
 
 nn_res_full <- preds(train_nn, nn_full, 'nn_pred_full')
 nn_res_full$accuracy
@@ -66,7 +68,9 @@ nn_reduced1 <- nnet(
   decay=1.0e-7
 )
 
-#plotnet(nn_reduced1)
+pdf("./figures/nn_reduced1.pdf")
+plotnet(nn_reduced1)
+dev.off()
 
 nn_res_red1 <- preds(train_nn, nn_reduced1, 'nn_pred_reduced1')
 nn_res_red1$accuracy
@@ -80,7 +84,9 @@ nn_reduced2 <- nnet(
   decay=1.0e-7
 )
 
-#plotnet(nn_reduced1)
+pdf("./figures/nn_reduced2.pdf")
+plotnet(nn_reduced2)
+dev.off()
 
 nn_res_red2 <- preds(train_nn, nn_reduced2, 'nn_pred_reduced2')
 nn_res_red2$accuracy
